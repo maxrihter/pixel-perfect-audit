@@ -1,29 +1,29 @@
 # Sample Audit Report
 
-**Project:** Example Web App
-**Audit Date:** 2025-03-08
+**Target:** Example Web App — `https://staging.example.com`
+**Audit Date:** 2026-03-08
 **Brandbook:** Example Design System v2.0
 **Viewport:** 1440 × 900
-**Auditor:** Claude Code + pixel-perfect skill
+**Auditor:** Claude Code + pixel-perfect skill v1.2.0
 
 ---
 
 ## Findings
 
-| # | Page / Section | Element | Property | Current Value | Expected Value | Severity | Navigation Path |
-|---|---|---|---|---|---|---|---|
-| 1 | /home | Hero heading | font-weight | `600` | `700` | High | Home → Hero section → h1 |
-| 2 | /home | Hero heading | line-height | `1.3` | `1.2` | Medium | Home → Hero section → h1 |
-| 3 | /home | CTA button | background-color | `#2B6CB0` | `#2B67AD` | High | Home → Hero → "Get Started" button |
-| 4 | /home | CTA button | border-radius | `6px` | `8px` | Medium | Home → Hero → "Get Started" button |
-| 5 | /dashboard | Sidebar nav item | font-size | `13px` | `14px` | High | Dashboard → Left sidebar → nav links |
-| 6 | /dashboard | Stats card | padding | `16px 20px` | `16px 24px` | Medium | Dashboard → Stats row → any card |
-| 7 | /dashboard | Dropdown menu | overflow | items hidden | scrollable | Critical | Dashboard → Filter → click dropdown → scroll down |
-| 8 | /settings | Section heading | color | `#8B9DAD` | `#8996A3` | High | Settings → "Account" section → h2 |
-| 9 | /settings | Save button | font-weight | `600` | `700` | High | Settings → bottom → "Save Changes" |
-| 10 | /settings | Input field | border-color | `#CBD5E0` | `#D1D5DB` | Low | Settings → any text input → default state |
-| 11 | Cross-page | Primary button | background-color varies | `#2B6CB0` on /home | `#2B67AD` on /settings | High | Compare CTA on /home vs Save on /settings |
-| 12 | Cross-page | Footer links | font-size varies | `12px` on /home | `13px` on /dashboard | Medium | Compare footer across pages |
+| Page / Section | Element | Issue | Category | Severity | Current Value | Expected Value |
+|---|---|---|---|---|---|---|
+| Global (all pages) | All headings h1–h3 | font-weight 600 instead of 700 across all headings — violates brandbook Bold rule | Typography | Critical | 600 | 700 (Bold) |
+| Home (/) → Hero section → Heading "Launch your product" | Hero h1 | line-height 1.3 instead of brandbook 1.2 for H1 | Typography | Medium | 52px / 1.3 | 52px / 1.2 |
+| Home (/) → Hero section → Button "Get Started" | CTA button | background-color #2B6CB0 not in palette, expected #2B67AD (Primary) | Colors | High | #2B6CB0 | #2B67AD (Primary) |
+| Home (/) → Hero section → Button "Get Started" | CTA button | border-radius 6px instead of 8px per button spec | Consistency | Medium | 6px | 8px |
+| Dashboard (/dashboard) → Left sidebar → Nav link "Analytics" | Sidebar nav items | font-size 13px below 14px minimum for interactive elements | Typography | High | 13px / 500 | 14px / 500 |
+| Dashboard (/dashboard) → Stats row → Card "Revenue" | Stats card | padding 16px 20px — horizontal padding should be 24px per card spec | Consistency | Medium | 16px 20px | 16px 24px |
+| Dashboard (/dashboard) → Filter bar → Dropdown "Period" → Open → Scroll down | Dropdown menu | Items below 7th hidden due to overflow:hidden on container. Users cannot select last 3 items | UX / Bug | Critical | overflow: hidden, 10 items | overflow-y: auto, max-height: 300px |
+| Settings (/settings) → Account section → Heading "Account" | Section heading | color #8B9DAD not in palette. R:139→137(2), G:157→150(7), B:173→163(10) — G,B exceed 3 | Colors | High | #8B9DAD | #8996A3 (Secondary Text) |
+| Settings (/settings) → Bottom actions → Button "Save Changes" | Save button | font-weight 600 — covered by systemic heading bug, but buttons also affected | Typography | High | 15px / 600 | 15px / 700 (Bold) |
+| Settings (/settings) → Form → Input "Email" → Default state | Input field | border-color #CBD5E0 not in palette, expected #D1D5DB (Border) | Colors | Low | #CBD5E0 | #D1D5DB (Border) |
+| Cross-page → Compare CTA on Home (/) vs Save on Settings (/settings) | Primary button | background-color differs: #2B6CB0 on Home, #2B67AD on Settings — must be uniform | Consistency | High | #2B6CB0 vs #2B67AD | #2B67AD (Primary) |
+| Cross-page → Compare footer across Home (/), Dashboard (/dashboard) | Footer links | font-size differs: 12px on Home, 13px on Dashboard — must be uniform | Consistency | Medium | 12px vs 13px | 13px (Footer) |
 
 ---
 
@@ -31,20 +31,27 @@
 
 | Severity | Count |
 |---|---|
-| Critical | 1 |
-| High | 6 |
+| Critical | 2 |
+| High | 5 |
 | Medium | 4 |
 | Low | 1 |
 | **Total** | **12** |
 
+| Category | Count |
+|---|---|
+| Typography | 4 |
+| Colors | 3 |
+| Consistency | 4 |
+| UX / Bug | 1 |
+
 **Verdict:** FIX → RE-AUDIT
 
 ### Priority Fixes
-1. **Critical:** Dashboard dropdown overflow — items are hidden when the list exceeds container height. Add `overflow-y: auto` and `max-height`.
-2. **High (typography):** Unify `font-weight` to `700` for all headings and primary buttons — currently inconsistent between `600` and `700`.
-3. **High (colors):** Align CTA/button `background-color` to brandbook value `#2B67AD` across all pages.
-4. **High (cross-page):** Primary button styling should be identical on every page.
+1. **Critical:** Dashboard dropdown overflow — items hidden below 7th. Add `overflow-y: auto` and `max-height` to dropdown container.
+2. **Critical:** All headings use font-weight 600 — brandbook requires 700 (Bold). Systemic fix in CSS heading styles.
+3. **High (colors):** Align button `background-color` to `#2B67AD` (Primary) across all pages.
+4. **High (consistency):** Primary button styling must be identical on every page.
 
 ---
 
-*Generated by [claude-pixel-perfect-agent](https://github.com/maxrihter/claude-pixel-perfect-agent)*
+*Generated by [claude-pixel-perfect-agent](https://github.com/maxrihter/claude-pixel-perfect-agent) v1.2.0*

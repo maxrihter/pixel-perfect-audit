@@ -33,19 +33,41 @@
 
 ---
 
-## Quick Install
+## Installation
+
+### One-liner (recommended)
 
 ```bash
-# One-liner: clone and copy
-git clone https://github.com/maxrihter/claude-pixel-perfect-agent.git && \
-  cp -r claude-pixel-perfect-agent/pixel-perfect ~/.claude/skills/
+git clone https://github.com/maxrihter/claude-pixel-perfect-agent.git ~/.claude/skills/pixel-perfect
 ```
 
-Claude Code auto-discovers the skill on next session start. Trigger it with:
+### Project-level (committed to your repo)
+
+```bash
+git clone https://github.com/maxrihter/claude-pixel-perfect-agent.git .claude/skills/pixel-perfect
+```
+
+### Symlink (auto-updates via git pull)
+
+```bash
+git clone https://github.com/maxrihter/claude-pixel-perfect-agent.git ~/pixel-perfect-agent
+ln -s ~/pixel-perfect-agent/pixel-perfect ~/.claude/skills/pixel-perfect
+```
+
+> [!NOTE]
+> Claude Code auto-discovers skills in `~/.claude/skills/` on session start. No restart required — just start a new conversation.
+
+**Trigger with:**
 
 - *"Run a pixel-perfect audit on staging.example.com against our brandbook"*
 - *"Design audit this page against the design system"*
 - *"Check if the implementation matches the brandbook"*
+
+**Verify installation:**
+
+```bash
+ls ~/.claude/skills/pixel-perfect/pixel-perfect/SKILL.md
+```
 
 ---
 
@@ -99,9 +121,9 @@ Each element is measured via `getComputedStyle()` — font-size, font-weight, li
 
 The default output is a **structured Excel file** (`.xlsx`) with columns:
 
-`#` · `Page / Section` · `Element` · `Property` · `Current Value` · `Expected Value` · `Severity` · `Navigation Path` · `Screenshot` · `Notes`
+`Page / Section` · `Element` · `Issue` · `Category` · `Severity` · `Current Value` · `Expected Value`
 
-Alternative formats: Markdown table, CSV, or Notion page.
+Alternative formats: Markdown table, CSV, or Notion page. See a full [sample report](examples/sample-report.md) with 12 bugs across 3 pages.
 
 The report ends with a summary and verdict:
 
