@@ -12,7 +12,7 @@ license: MIT
 metadata:
   category: technique
   author: maxrihter
-  version: "1.1.0"
+  version: "1.2.0"
   triggers: pixel-perfect, design audit, UI audit, brandbook compliance, design QA, design check, design implementation, check against design, check against brandbook
 ---
 
@@ -202,6 +202,36 @@ For `?` values, measure one canonical instance during Phase 5 — use as expecte
 
 Process one page at a time.
 
+### 5.0 DOM Existence Verification (MANDATORY)
+
+**Before logging ANY bug, the element MUST be confirmed to exist in the DOM.**
+
+Every measurement MUST follow this sequence:
+1. **Find** the element via `find(query=...)` or `read_page` — get a `ref` or selector
+2. **Verify existence** via `javascript_tool`: `document.querySelector(SELECTOR) !== null`
+3. **Capture textContent** alongside CSS: `el.textContent.trim().slice(0, 60)` — proves you measured the RIGHT element
+4. **Double-measure** if the value seems unexpected: use a DIFFERENT selector or `ref` click + re-measure
+
+```javascript
+// MANDATORY: existence check + textContent capture
+const el = document.querySelector(SELECTOR);
+if (!el) { JSON.stringify({ error: 'ELEMENT DOES NOT EXIST', selector: SELECTOR }) }
+else {
+  const s = getComputedStyle(el);
+  JSON.stringify({
+    exists: true,
+    textContent: el.textContent.trim().slice(0, 60),
+    visible: el.offsetParent !== null && el.offsetWidth > 0,
+    fontSize: s.fontSize, fontWeight: s.fontWeight,
+    color: rgbToHex(s.color)
+  });
+}
+```
+
+**If `exists: false` or `visible: false` → the element is NOT on the page. Do NOT log a bug.**
+
+> **Why this exists:** In production audit, "Create pool" and "Add stake" buttons were flagged as having wrong font-size — but they didn't exist on the page at all. This was a pure hallucination from training data, not a measurement.
+
 ### 5.1 Element discovery
 Use `read_page` for the accessibility tree. Use `find` to locate elements by purpose (max 20 per call). Use `computer` (scroll_to) to reach elements below the fold.
 
@@ -212,6 +242,7 @@ Use `read_page` for the accessibility tree. Use `find` to locate elements by pur
 For every text element, measure via `javascript_tool`:
 - `fontSize` — must match type scale
 - `fontWeight` — watch for 600 vs 700!
+- **Context disambiguation:** When multiple elements share the same visible text (e.g., "APY" appears in a table header AND a chart legend), ALWAYS capture `textContent` + parent context to confirm you measured the correct one. Use: `el.closest('section, [class*="table"], [class*="chart"]')?.className` to verify context.
 - `fontFamily` — strip quotes and fallbacks for comparison
 - `lineHeight`, `letterSpacing`, `color`
 
@@ -258,6 +289,20 @@ Compare against Component Registry from Phase 4: same component on different pag
 
 **Color threshold detail:** Compare R, G, B independently as decimals (0-255). Example: `#8B9DAD` vs `#8996A3` — R: 139 vs 137 (2), G: 157 vs 150 (7), B: 173 vs 163 (10) — G and B exceed 3, this IS a bug. Also compare alpha separately.
 
+### Design intent filter
+
+Not every visual difference is a bug. Apply this filter BEFORE logging:
+
+| Pattern | Decision | Rationale |
+|---------|----------|-----------|
+| **Different categories → different colors** | NOT a bug | e.g., "Nominator" badge = blue, "Owner" badge = green — intentional differentiation |
+| **Different hierarchy levels → different sizes** | NOT a bug | e.g., section header 24px vs subsection 18px — intentional hierarchy |
+| **Different states → different styles** | NOT a bug | e.g., active tab bold, inactive regular — standard UX |
+| **Role vs account type distinction** | NOT a bug | e.g., "Owner" role has no badge but "Nominator" account type does |
+| **Element doesn't exist on page** | NOT a bug | If you can't find it in DOM — it's a hallucination, not a bug |
+
+> **Rule:** If the design system does NOT explicitly define a single style for all instances of a pattern, assume the variation is intentional. Only flag it if the brandbook says "all badges must be the same color" or similar.
+
 ### Deduplicate strictly
 
 Duplicate bugs waste developer time and undermine report credibility. Apply these rules:
@@ -268,6 +313,8 @@ Duplicate bugs waste developer time and undermine report credibility. Apply thes
 | **Self-declared duplicates** | A bug that says "repeats systemic bug #N" should not exist — remove it |
 | **Same page + same element** | Two entries for the same element on the same page = always a duplicate |
 | **Current = Expected** | If "Current Value" equals "Expected Value" — it is NOT a bug, remove |
+| **Systemic + page-level overlap** | Bug #5 says "28px headings across all pages" AND bug #29 says "28px on Dashboard heading" → remove #29 |
+| **Same element, different wording** | "font-size 12px below minimum" and "12px too small for body text" on same element → keep one |
 | **Single category per bug** | Never create "Typography + Colors" — split into two bugs or pick the primary |
 
 **Allowed categories (strict enum):**
@@ -313,6 +360,10 @@ Renumber sequentially after removals (1..N, no gaps).
    - Mixed: `{size}px / {weight} / {hex}` (e.g., `12px / 500 / #A8F4FF`)
 7. **Numbering** — Sequential 1..N, no gaps after removals
 8. **Page name consistency** — Same page should always use the same name format across all bugs
+9. **DOM existence proof** — Every bug must have been measured from a confirmed-existing DOM element. If any bug references an element you cannot re-find via `find` or `read_page` → it's a hallucination, remove it
+10. **Context verification** — For bugs on elements with common text (e.g., "APY", "Total", "Balance"), verify the textContent + parent context matches the intended element, not a similarly-named one elsewhere on page
+11. **Design intent check** — For any "inconsistency" bug between different categories/types/roles, ask: "Does the brandbook explicitly require these to be identical?" If no → remove
+12. **Navigation reproducibility** — For each bug, mentally trace the navigation path. Can a developer follow `Page (URL) → Section → Element "text"` to find it? If ambiguous → rewrite the path
 
 > **Why this phase exists:** In production audits (5 rounds, 85+ bugs), this phase consistently caught 9-12 duplicates, 1-2 factual errors, and 5+ formatting inconsistencies per session. Skipping it delivers a 10-15% defective report.
 
@@ -333,9 +384,16 @@ Apply these formats uniformly across ALL bugs. Inconsistency looks unprofessiona
 | **Current Value** (mixed) | `{size}px / {weight} / {hex}` | `12px / 500 / #A8F4FF` |
 | **Current Value** (spacing) | `{value}px` or `{top} {right} {bottom} {left}` | `16px 20px`, `12px` |
 | **Expected Value** | value + brandbook term | `15px SubText`, `#A684FF (Purple)`, `18px / 500 (Btn)` |
-| **Page / Section** | `Page → Section → Subsection` | `Settings (Owner) → Модалки`, `Nominator Analytics → PnL` |
+| **Page / Section** | `Page (route) → Section → Element "text"` | `Validators (/validators) → Staking table → Column header "APY"`, `Settings (/settings) → Owner modal → Input "Pool name"` |
 
 **Never use:** CSS property notation in Current Value (e.g., `font-weight: 600`), verbose `fontWeight 600`, or inconsistent slash spacing.
+
+**Navigation path rules:**
+- MINIMUM 3 levels: Page (with URL/route) → Section/Area → Specific element with quoted text
+- Include the URL path or route (e.g., `/validators`, `/settings`) in the Page level
+- Quote the element's visible text: `Button "Stake"`, `Header "Performance"`, `Tab "Analytics"`
+- For modal/dropdown bugs: include the trigger: `Settings → "Edit pool" modal → Input "Commission"`
+- **Test:** A developer who has never seen the site should be able to find the element in <30 seconds using only your navigation path
 
 ### Excel report
 
@@ -558,6 +616,8 @@ Then `read_page` with `ref_id` to drill into subtrees, or `javascript_tool` with
 10. **Multiple identical elements** — SPA apps often render duplicate elements (e.g., mobile + desktop buttons). When measuring, verify the element is visible: `el.offsetParent !== null && el.offsetWidth > 0`. Finding the wrong one gives wrong measurements.
 11. **`.closest()` parent capture** — When finding a badge's parent container, `.closest('div')` can return a much larger ancestor. Use precise selectors or verify dimensions match expectations.
 12. **Excel merged cells** — When updating summary sheets with `openpyxl`, merged cells throw `'MergedCell' object attribute 'value' is read-only`. Write only to the top-left cell of each merged range, or unmerge before editing.
+13. **Same text, different context** — "APY" may appear as a table column header, a chart axis label, a tooltip, and a card stat — all with different (correct) styles. When measuring, ALWAYS capture `el.textContent` + parent selector to confirm which "APY" you measured. If you report a bug on the wrong one, the developer can't reproduce it.
+14. **Intentional category differentiation** — Different account types, roles, statuses, or tiers often have intentionally different visual treatments (colors, badges, icons). "Nominator" may be blue while "Owner" is green — this is differentiation, not inconsistency. Only flag if the brandbook explicitly mandates uniform styling.
 
 ---
 
@@ -581,6 +641,12 @@ Then `read_page` with `ref_id` to drill into subtrees, or `javascript_tool` with
 - Verify Current Value ≠ Expected Value for every bug
 - Use exactly one allowed category per bug (Typography / Colors / Consistency / UX Bug)
 - Check `el.offsetParent !== null` when multiple DOM elements match a selector
+- Verify DOM existence (`document.querySelector(sel) !== null`) before logging ANY bug
+- Capture `textContent` with every measurement to prove the correct element was measured
+- Double-measure any value that seems unexpected using an alternative selector
+- Apply design intent filter: different categories/types having different styles is NOT a bug unless brandbook says otherwise
+- Write navigation paths with 3+ levels including URL route and quoted element text
+- For elements with common text ("APY", "Total", "Balance"), verify parent context before reporting
 
 ### NEVER DO
 - Never start without a design system reference
@@ -591,3 +657,7 @@ Then `read_page` with `ref_id` to drill into subtrees, or `javascript_tool` with
 - Never create a bug that says "repeats bug #N" — if it repeats, it should not exist
 - Never use mixed categories ("Typography + Colors") — split or pick primary
 - Never search for visually-displayed text when `text-transform` is applied — search original DOM text
+- Never log a bug for an element you cannot find in the DOM — if `querySelector` returns null, it does not exist
+- Never flag different visual treatments for different categories/types/roles as "inconsistency" without explicit brandbook evidence
+- Never write a navigation path with fewer than 3 levels or without the element's visible text
+- Never report a measurement without capturing the element's textContent alongside it

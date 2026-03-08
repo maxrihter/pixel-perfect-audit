@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-6B48FF?style=flat-square&logo=anthropic&logoColor=white)](pixel-perfect/SKILL.md)
-[![Version](https://img.shields.io/badge/version-1.1.0-green.svg?style=flat-square)](pixel-perfect/SKILL.md)
+[![Version](https://img.shields.io/badge/version-1.2.0-green.svg?style=flat-square)](pixel-perfect/SKILL.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
 </div>
@@ -85,9 +85,9 @@ Phase 1    →  Browser Setup     Get tab, navigate, set viewport 1440×900
 Phase 2    →  Token Extraction  Extract colors, typography, spacing from brandbook
 Phase 3    →  Site Discovery    Map all pages, modals, dropdowns, states
 Phase 4    →  Component Group   Build registry of shared components
-Phase 5    →  Systematic Audit  Measure every element with getComputedStyle()
-Phase 6    →  Verification      Dedup, cross-page consistency, severity alignment
-Phase 6.5  →  Self-Review       Quality gate: catch duplicates, errors, format issues
+Phase 5    →  Systematic Audit  DOM verification + getComputedStyle() measurement
+Phase 6    →  Verification      Design intent filter, dedup, severity alignment
+Phase 6.5  →  Self-Review       12-point quality gate: hallucinations, duplicates, nav paths
 Phase 7    →  Documentation     Generate Excel/Markdown report, present verdict
 ```
 
@@ -148,13 +148,13 @@ Discover all pages and interactive states. Build a checklist: main pages, modals
 Build a registry of shared components (buttons, cards, inputs, headers, footers). Map which components appear on which pages — deviations here multiply.
 
 ### Phase 5 — Systematic Audit
-For each page: screenshot → measure every visible element via batch JS snippets → compare against brandbook → log deviations with severity and navigation path.
+For each page: verify DOM existence of every element before measuring → capture textContent to prove correct element → measure via batch JS snippets → compare against brandbook → log deviations with severity and 3-level navigation path.
 
 ### Phase 6 — Verification & Cleanup
-Cross-page consistency: compare the same component across different pages. A button on `/home` should match the button on `/settings`. Strict deduplication: page-specific bugs must not repeat global systemic bugs. Severity alignment: same violation class = same severity.
+Design intent filter: different categories/roles/states with different styles ≠ bug. Cross-page consistency: same component must match across pages. Strict deduplication: systemic bugs absorb page-level duplicates. Severity alignment: same violation class = same severity.
 
-### Phase 6.5 — Self-Review (Quality Gate)
-Audit the audit before delivery. In production use, this phase consistently catches 10-15% defective entries: duplicate bugs, factual errors (flagging palette colors as "not in palette"), entries where current = expected, mixed categories, and formatting inconsistencies.
+### Phase 6.5 — Self-Review (12-Point Quality Gate)
+Audit the audit before delivery. 12 checks including: DOM existence proof (catch hallucinations), context verification (catch same-text-wrong-element), design intent check, navigation reproducibility, duplicate scan, palette cross-reference, and format standardization. In production, catches 10-15% defective entries per session.
 
 ### Phase 7 — Documentation
 Compile all findings into the chosen format. Attach screenshots. Sort by severity. Present summary with verdict.
@@ -185,7 +185,7 @@ Yes. Set the viewport to a mobile size (e.g., 375×812) in your request.
 Per-channel RGB difference of ≤3 is auto-dismissed (e.g., `#8996A3` vs `#8996A4`). Larger deviations are flagged.
 
 **How accurate is the report?**
-After Phase 6.5 (Self-Review), the report has zero duplicates and zero factual errors. Without self-review, expect 10-15% of entries to be duplicates, non-bugs, or misidentified colors. The self-review phase was added based on production experience with 85+ bug reports.
+v1.2.0 includes an anti-hallucination protocol (DOM existence verification + textContent capture) and a 12-point self-review gate. After Phase 6.5, the report has zero hallucinations, zero duplicates, and zero factual errors. Without these safeguards, expect 10-15% of entries to be duplicates, non-bugs, or misidentified elements.
 
 </details>
 
