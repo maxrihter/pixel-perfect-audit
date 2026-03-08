@@ -154,31 +154,31 @@ Verdict logic: **SHIP AS-IS** if 0 Critical + 0 High. Otherwise **FIX → RE-AUD
 <details>
 <summary><strong>Phases in Detail</strong></summary>
 
-### Phase 0 — Prerequisites
+### Phase 0: Prerequisites
 Collect inputs: brandbook URL, target URL, audit scope (full site or specific pages), device targets. Default viewport: 1440×900.
 
-### Phase 1 — Browser Setup
+### Phase 1: Browser Setup
 Get browser tab via `tabs_context_mcp`, navigate to target URL, set viewport size. Confirm page loads correctly.
 
-### Phase 2 — Design Token Extraction
+### Phase 2: Design Token Extraction
 Open the design system. Extract canonical palette (hex values), typography scale (font-family, sizes, weights, line-heights), spacing system, border-radius values, shadow definitions.
 
-### Phase 3 — Site Discovery & Navigation Map
+### Phase 3: Site Discovery & Navigation Map
 Discover all pages and interactive states. Build a checklist: main pages, modals, dropdowns, hover states, empty states, error states, loading states.
 
-### Phase 4 — Component Grouping
+### Phase 4: Component Grouping
 Build a registry of shared components (buttons, cards, inputs, headers, footers). Map which components appear on which pages — deviations here multiply.
 
-### Phase 5 — Systematic Audit
+### Phase 5: Systematic Audit
 For each page: verify DOM existence of every element before measuring → capture textContent to prove correct element → measure via batch JS snippets → compare against brandbook → log deviations with severity and 3-level navigation path.
 
-### Phase 6 — Verification & Cleanup
+### Phase 6: Verification & Cleanup
 Design intent filter: different categories/roles/states with different styles ≠ bug. Cross-page consistency: same component must match across pages. Strict deduplication: systemic bugs absorb page-level duplicates. Severity alignment: same violation class = same severity.
 
-### Phase 6.5 — Self-Review (12-Point Quality Gate)
+### Phase 6.5: Self-Review (12-Point Quality Gate)
 Audit the audit before delivery. 12 checks including: DOM existence proof (catch hallucinations), context verification (catch same-text-wrong-element), design intent check, navigation reproducibility, duplicate scan, palette cross-reference, and format standardization. In production, catches 10-15% defective entries per session.
 
-### Phase 7 — Documentation
+### Phase 7: Documentation
 Compile all findings into the chosen format. Attach screenshots. Sort by severity. Present summary with verdict.
 
 </details>
