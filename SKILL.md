@@ -240,7 +240,7 @@ const el = document.querySelector(SELECTOR);
 
 **If `exists: false` or `visible: false` → the element is NOT on the page. Do NOT log a bug.**
 
-> **Why this exists:** In production audit, "Create pool" and "Add stake" buttons were flagged as having wrong font-size — but they didn't exist on the page at all. This was a pure hallucination from training data, not a measurement.
+> **Why this exists:** In a production audit, "Export PDF" and "Submit report" buttons were flagged as having wrong font-size — but they didn't exist on the page at all. This was a pure hallucination from training data, not a measurement.
 
 ### 5.1 Element discovery
 Use `read_page` for the accessibility tree. Use `find` to locate elements by purpose (max 20 per call). Use `computer` (scroll_to) to reach elements below the fold.
@@ -254,7 +254,7 @@ Use `read_page` for the accessibility tree. Use `find` to locate elements by pur
 For every text element, measure via `javascript_tool`:
 - `fontSize` — must match type scale
 - `fontWeight` — watch for 600 vs 700!
-- **Context disambiguation:** When multiple elements share the same visible text (e.g., "APY" appears in a table header AND a chart legend), ALWAYS capture `textContent` + parent context to confirm you measured the correct one. Use: `el.closest('section, [class*="table"], [class*="chart"]')?.className` to verify context.
+- **Context disambiguation:** When multiple elements share the same visible text (e.g., "Price" appears in a table header AND a chart legend), ALWAYS capture `textContent` + parent context to confirm you measured the correct one. Use: `el.closest('section, [class*="table"], [class*="chart"]')?.className` to verify context.
 - `fontFamily` — strip quotes and fallbacks for comparison
 - `lineHeight`, `letterSpacing`, `color`
 
@@ -307,10 +307,10 @@ Not every visual difference is a bug. Apply this filter BEFORE logging:
 
 | Pattern | Decision | Rationale |
 |---------|----------|-----------|
-| **Different categories → different colors** | NOT a bug | e.g., "Nominator" badge = blue, "Owner" badge = green — intentional differentiation |
+| **Different categories → different colors** | NOT a bug | e.g., "Admin" badge = blue, "Member" badge = green — intentional differentiation |
 | **Different hierarchy levels → different sizes** | NOT a bug | e.g., section header 24px vs subsection 18px — intentional hierarchy |
 | **Different states → different styles** | NOT a bug | e.g., active tab bold, inactive regular — standard UX |
-| **Role vs account type distinction** | NOT a bug | e.g., "Owner" role has no badge but "Nominator" account type does |
+| **Role vs account type distinction** | NOT a bug | e.g., "Admin" role has no badge but "Editor" account type does |
 | **Element doesn't exist on page** | NOT a bug | If you can't find it in DOM — it's a hallucination, not a bug |
 
 > **Rule:** If the design system does NOT explicitly define a single style for all instances of a pattern, assume the variation is intentional. Only flag it if the brandbook says "all badges must be the same color" or similar.
@@ -321,7 +321,7 @@ Duplicate bugs waste developer time and undermine report credibility. Apply thes
 
 | Rule | Example |
 |------|---------|
-| **Systemic covers specific** | If global bug says "28px used in Performance, Validator summary" — do NOT add a page-level bug for "Performance heading 28px" |
+| **Systemic covers specific** | If global bug says "28px used in Overview, Activity feed" — do NOT add a page-level bug for "Overview heading 28px" |
 | **Self-declared duplicates** | A bug that says "repeats systemic bug #N" should not exist — remove it |
 | **Same page + same element** | Two entries for the same element on the same page = always a duplicate |
 | **Current = Expected** | If "Current Value" equals "Expected Value" — it is NOT a bug, remove |
@@ -373,7 +373,7 @@ Renumber sequentially after removals (1..N, no gaps).
 7. **Numbering** — Sequential 1..N, no gaps after removals
 8. **Page name consistency** — Same page should always use the same name format across all bugs
 9. **DOM existence proof** — Every bug must have been measured from a confirmed-existing DOM element. If any bug references an element you cannot re-find via `find` or `read_page` → it's a hallucination, remove it
-10. **Context verification** — For bugs on elements with common text (e.g., "APY", "Total", "Balance"), verify the textContent + parent context matches the intended element, not a similarly-named one elsewhere on page
+10. **Context verification** — For bugs on elements with common text (e.g., "Price", "Total", "Status"), verify the textContent + parent context matches the intended element, not a similarly-named one elsewhere on page
 11. **Design intent check** — For any "inconsistency" bug between different categories/types/roles, ask: "Does the brandbook explicitly require these to be identical?" If no → remove
 12. **Navigation reproducibility** — For each bug, mentally trace the navigation path. Can a developer follow `Page (URL) → Section → Element "text"` to find it? If ambiguous → rewrite the path
 
@@ -396,15 +396,15 @@ Apply these formats uniformly across ALL bugs. Inconsistency looks unprofessiona
 | **Current Value** (mixed) | `{size}px / {weight} / {hex}` | `12px / 500 / #A8F4FF` |
 | **Current Value** (spacing) | `{value}px` or `{top} {right} {bottom} {left}` | `16px 20px`, `12px` |
 | **Expected Value** | value + brandbook term | `15px SubText`, `#A684FF (Purple)`, `18px / 500 (Btn)` |
-| **Page / Section** | `Page (route) → Section → Element "text"` | `Validators (/validators) → Staking table → Column header "APY"`, `Settings (/settings) → Owner modal → Input "Pool name"` |
+| **Page / Section** | `Page (route) → Section → Element "text"` | `Products (/products) → Data table → Column header "Price"`, `Settings (/settings) → Edit project modal → Input "Project name"` |
 
 **Never use:** CSS property notation in Current Value (e.g., `font-weight: 600`), verbose `fontWeight 600`, or inconsistent slash spacing.
 
 **Navigation path rules:**
 - MINIMUM 3 levels: Page (with URL/route) → Section/Area → Specific element with quoted text
-- Include the URL path or route (e.g., `/validators`, `/settings`) in the Page level
-- Quote the element's visible text: `Button "Stake"`, `Header "Performance"`, `Tab "Analytics"`
-- For modal/dropdown bugs: include the trigger: `Settings → "Edit pool" modal → Input "Commission"`
+- Include the URL path or route (e.g., `/products`, `/settings`) in the Page level
+- Quote the element's visible text: `Button "Submit"`, `Header "Overview"`, `Tab "Analytics"`
+- For modal/dropdown bugs: include the trigger: `Settings → "Edit project" modal → Input "Discount"`
 - **Test:** A developer who has never seen the site should be able to find the element in <30 seconds using only your navigation path
 
 ### Excel report
@@ -629,8 +629,8 @@ Then `read_page` with `ref_id` to drill into subtrees, or `javascript_tool` with
 10. **Multiple identical elements** — SPA apps often render duplicate elements (e.g., mobile + desktop buttons). When measuring, verify the element is visible: `el.offsetParent !== null && el.offsetWidth > 0`. Finding the wrong one gives wrong measurements.
 11. **`.closest()` parent capture** — When finding a badge's parent container, `.closest('div')` can return a much larger ancestor. Use precise selectors or verify dimensions match expectations.
 12. **Excel merged cells** — When updating summary sheets with `openpyxl`, merged cells throw `'MergedCell' object attribute 'value' is read-only`. Write only to the top-left cell of each merged range, or unmerge before editing.
-13. **Same text, different context** — "APY" may appear as a table column header, a chart axis label, a tooltip, and a card stat — all with different (correct) styles. When measuring, ALWAYS capture `el.textContent` + parent selector to confirm which "APY" you measured. If you report a bug on the wrong one, the developer can't reproduce it.
-14. **Intentional category differentiation** — Different account types, roles, statuses, or tiers often have intentionally different visual treatments (colors, badges, icons). "Nominator" may be blue while "Owner" is green — this is differentiation, not inconsistency. Only flag if the brandbook explicitly mandates uniform styling.
+13. **Same text, different context** — "Price" may appear as a table column header, a chart axis label, a tooltip, and a card stat — all with different (correct) styles. When measuring, ALWAYS capture `el.textContent` + parent selector to confirm which "Price" you measured. If you report a bug on the wrong one, the developer can't reproduce it.
+14. **Intentional category differentiation** — Different account types, roles, statuses, or tiers often have intentionally different visual treatments (colors, badges, icons). "Admin" may be blue while "Member" is green — this is differentiation, not inconsistency. Only flag if the brandbook explicitly mandates uniform styling.
 
 ---
 
@@ -659,7 +659,7 @@ Then `read_page` with `ref_id` to drill into subtrees, or `javascript_tool` with
 - Double-measure any value that seems unexpected using an alternative selector
 - Apply design intent filter: different categories/types having different styles is NOT a bug unless brandbook says otherwise
 - Write navigation paths with 3+ levels including URL route and quoted element text
-- For elements with common text ("APY", "Total", "Balance"), verify parent context before reporting
+- For elements with common text ("Price", "Total", "Status"), verify parent context before reporting
 
 ### NEVER DO
 - Never start without a design system reference
