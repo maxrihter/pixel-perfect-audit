@@ -2,6 +2,40 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.1.0] - 2026-03-09
+
+### Added
+- **Multi-source token extraction** — Phase 2 now supports 6 source types: Figma, Reference site, Screenshots, PDF brandbook, Notion, Manual specs
+- **Figma canvas clicking workflow** (Phase 2A) — click elements on canvas, read Typography/Fill/Layout panels. Exhaustive checklist with 15+ element types
+- **Reference site as source** (Phase 2B) — use `getComputedStyle()` on approved production build as design truth
+- **Screenshot workflow** (Phase 2C) — visual inspection with confidence tagging and user-confirmed values
+- **PDF brandbook workflow** (Phase 2D) — structured extraction of color palettes, typography scales, component specs
+- **Notion workflow** (Phase 2E) — fetch design system pages via Notion API
+- **Universal token table format** (Phase 2F) — standardized table with Typography / Color / Component tokens, used by all source types
+- **Completeness check** (Phase 2G) — minimum 10 entries, 5 colors, key component specs before proceeding
+- **Cross-verification loop** (Phase 4.3) — for every "not in tokens" finding, go back to the original source and verify before logging a bug
+- **Source-specific gotchas** (#12–15) — Figma `get_design_context` vs panel values, browser defaults on reference sites, screenshot compression artifacts, PDF OCR misreads
+- **Source priority hierarchy** — Figma > PDF > Reference site > Screenshots > Manual
+- **Confidence levels** — High (Figma, reference site), Medium (PDF, screenshots, Notion), Low (manual)
+- **Incremental saving protocol** — save XLSX after every page audit, not just at the end
+- **Session handoff file** — save full state (tokens, bugs, progress) when context runs low
+
+### Changed
+- **BREAKING: Audit phases restructured** — 9 phases (0–7 + 6.5) → 7 phases (0–6). Phase 4 (Component Grouping) and Phase 6.5 (Self-Review) merged into adjacent phases
+- **Phase 2 expanded** — from single-source brandbook extraction to multi-source with sub-phases 2A–2G
+- **Phase 4** — now combines measurement + cross-verification (was just "Systematic Audit")
+- **Phase 5** — now covers verification + cleanup + false positive rules (was split across Phase 6 + 6.5)
+- **Phase 6** — now focused on report generation with incremental saving (was "Documentation")
+- **False positive rules** — reordered by real-world frequency: incomplete token extraction (~60%), color under different name (~15%), semantic mismatch (~10%), matches production (~5%), imperceptible diff (~5%), standard UX pattern (~5%)
+- Reduced total line count from 680 → 571 while adding multi-source support
+- Requirements: "brandbook required" → "at least one design reference required"
+
+### Removed
+- Phase 4 (Component Grouping) as standalone phase — absorbed into measurement workflow
+- Phase 6.5 (12-Point Self-Review) as standalone phase — rules integrated into Phase 5 verification
+- Chrome MCP tool reference table — removed verbose tool descriptions (users already have MCP docs)
+- Redundant CSS knowledge sections that duplicated browser documentation
+
 ## [1.3.0] - 2026-03-08
 
 ### Changed

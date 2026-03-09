@@ -2,18 +2,32 @@
 
 # claude-pixel-perfect-agent
 
-**Manual design audit skill for Claude Code — verify live web apps against a design system / brandbook**
+**Manual design audit skill for Claude Code — verify live web apps against any design reference**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-6B48FF?style=flat-square&logo=anthropic&logoColor=white)](SKILL.md)
-[![Version](https://img.shields.io/badge/version-1.3.0-green.svg?style=flat-square)](SKILL.md)
+[![Version](https://img.shields.io/badge/version-2.1.0-green.svg?style=flat-square)](SKILL.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
 </div>
 
 ---
 
-> Systematically inspects every CSS property of a live web app via Chrome DevTools, compares values against a design system (brandbook), and produces a structured bug report. Catches what automated tools miss.
+> Systematically inspects every CSS property of a live web app via Chrome DevTools, compares values against a design reference (Figma, PDF brandbook, screenshots, reference site, or manual specs), and produces a structured bug report. Catches what automated tools miss.
+
+## Supported Design Sources
+
+| Source | How it works | Confidence |
+|:---|:---|:---|
+| **Figma** | Click elements on canvas → read Typography / Fill / Layout panels | High |
+| **Reference site** | Measure CSS with `getComputedStyle()` on approved production build | High |
+| **PDF brandbook** | Extract colors, typography scale, component specs from PDF pages | Medium–High |
+| **Screenshots** | Visual inspection + user-provided hex values / font specs | Medium |
+| **Notion** | Fetch design system pages via Notion API | Medium |
+| **Manual specs** | User provides colors, sizes, spacing directly | Minimum viable |
+
+> [!TIP]
+> Multiple sources can be combined — e.g. Figma for typography + reference site for component dimensions. Source priority: Figma > PDF > Reference site > Screenshots > Manual.
 
 ## What It Catches
 
@@ -22,10 +36,10 @@
 | Typography | Wrong font-weight on ALL headings | `600` | `700` (Bold) | Critical |
 | Typography | Font-size below minimum (15px) | `12px / 600` | `15px / 500` | Critical |
 | Typography | Font-size outside type scale | `28px` | `24px` or `36px` | High |
-| Colors | Off-palette color | `#8B9DAD` | `#8996A3` (Second Font) | High |
-| Colors | Off-palette card background | `#323D47` | `#2B343F` (Gray) | Medium |
+| Colors | Off-palette color | `#6B7280` | `#6C727F` (Secondary Text) | High |
+| Colors | Off-palette card background | `#323D47` | `#2B343F` (Surface) | Medium |
 | UX / Bug | Dropdown items hidden on overflow | items cut off | scrollable | Critical |
-| Consistency | CTA button color differs across pages | `#3B7BF6` (blue) | `#A684FF` (Purple) | High |
+| Consistency | CTA button color differs across pages | `#2B6CB0` (blue) | `#2563EB` (Primary) | High |
 | Consistency | Badge style inconsistency | plain text / badge / uppercase | unified style | Medium |
 
 > [!TIP]
@@ -59,9 +73,10 @@ ln -s ~/pixel-perfect-agent ~/.claude/skills/pixel-perfect
 
 **Trigger with:**
 
-- *"Run a pixel-perfect audit on staging.example.com against our brandbook"*
-- *"Design audit this page against the design system"*
-- *"Check if the implementation matches the brandbook"*
+- *"Run a pixel-perfect audit on staging.example.com against our Figma"*
+- *"Design audit this page against the brandbook PDF"*
+- *"Check if the implementation matches the reference site"*
+- *"Compare live build to these screenshots"*
 
 **Verify installation:**
 
@@ -77,11 +92,11 @@ ls ~/.claude/skills/pixel-perfect/SKILL.md
 |:---|:---|
 | **Claude Code** | The skill runs as a Claude Code agent skill |
 | **Chrome MCP extension** | All measurements use Chrome browser automation tools |
-| **Design system / brandbook** | Source of truth for colors, typography, spacing |
+| **Design reference** | At least one source: Figma link, PDF, reference URL, screenshots, or manual specs |
 | **Target URL** | Live web app or staging environment to audit |
 
 > [!IMPORTANT]
-> A brandbook is **required**. Without a design system as the source of truth, there is nothing to compare against — every measurement would be subjective.
+> A design reference is **required** — at least one source from the table above. Without a source of truth, there is nothing to compare against.
 
 ---
 
@@ -90,30 +105,42 @@ ls ~/.claude/skills/pixel-perfect/SKILL.md
 | Use this skill | Don't use this skill |
 |:---|:---|
 | New build ready for design QA | Automated CI screenshot diffing → use [visual regression](https://github.com/maxrihter/claude-skill-visual-regression) |
-| Redesign needs brandbook verification | Functional / behavioral testing → use Playwright |
-| Checking implementation matches design specs | CSS performance / bundle audit |
-| Finding cross-component inconsistencies | CSS linting or code-level optimization |
-| Pre-launch design sign-off | Just need a single screenshot |
+| Verify implementation matches Figma / brandbook / specs | Functional / behavioral testing → use Playwright |
+| Finding cross-component inconsistencies | CSS performance / bundle audit |
+| Pre-launch design sign-off | CSS linting or code-level optimization |
+| Multiple design sources need reconciliation | Just need a single screenshot |
 
 ---
 
 ## How It Works
 
-The audit runs in **9 phases** (matching [SKILL.md](SKILL.md)):
+The audit runs in **7 phases** (matching [SKILL.md](SKILL.md)):
 
 ```
-Phase 0    →  Prerequisites     Collect brandbook URL, target URL, scope, viewport
-Phase 1    →  Browser Setup     Get tab, navigate, set viewport 1440×900
-Phase 2    →  Token Extraction  Extract colors, typography, spacing from brandbook
-Phase 3    →  Site Discovery    Map all pages, modals, dropdowns, states
-Phase 4    →  Component Group   Build registry of shared components
-Phase 5    →  Systematic Audit  DOM verification + getComputedStyle() measurement
-Phase 6    →  Verification      Design intent filter, dedup, severity alignment
-Phase 6.5  →  Self-Review       12-point quality gate: hallucinations, duplicates, nav paths
-Phase 7    →  Documentation     Generate Excel/Markdown report, present verdict
+Phase 0    →  Prerequisites       Collect design reference, target URL, scope
+Phase 1    →  Browser Setup       Open tabs for target + design source
+Phase 2    →  Token Extraction    Extract tokens from design source (2A–2G per source type)
+Phase 3    →  Site Discovery      Map all pages, modals, dropdowns, interactive states
+Phase 4    →  Measurement         JS measurement kit + cross-verification loop
+Phase 5    →  Verification        False positive rules, design intent filter, dedup, severity
+Phase 6    →  Report              XLSX/Markdown generation with incremental saving
 ```
 
-Each element is measured via `getComputedStyle()` — font-size, font-weight, line-height, color, background, padding, margin, border-radius, gap, shadows, opacity. Deviations from the brandbook are logged with severity, screenshot, and reproduction path.
+### Token Extraction Workflows (Phase 2)
+
+Phase 2 adapts to your design source:
+
+| Sub-phase | Source | Method |
+|:---|:---|:---|
+| 2A | Figma | Click elements on canvas → read right-side panels |
+| 2B | Reference site | `getComputedStyle()` measurement as source of truth |
+| 2C | Screenshots | Visual inspection + user-confirmed values |
+| 2D | PDF brandbook | Parse color palettes, typography scales, component specs |
+| 2E | Notion | Fetch via Notion API, parse Markdown tables |
+| 2F | — | Universal token table format (used by all sources) |
+| 2G | — | Completeness check (10+ entries before proceeding) |
+
+Each element is measured via `getComputedStyle()` — font-size, font-weight, line-height, color, background, padding, margin, border-radius, gap, shadows, opacity. Deviations from the design reference are logged with severity and reproduction path.
 
 ---
 
@@ -135,7 +162,7 @@ The report ends with a summary and verdict:
 | Low | 1 |
 | **Verdict** | **FIX → RE-AUDIT** |
 
-Verdict logic: **SHIP AS-IS** if 0 Critical + 0 High. Otherwise **FIX → RE-AUDIT**. See the full [sample report](examples/sample-report.md) for these numbers in context.
+Verdict logic: **SHIP AS-IS** if 0 Critical + 0 High. Otherwise **FIX → RE-AUDIT**.
 
 ---
 
@@ -155,31 +182,25 @@ Verdict logic: **SHIP AS-IS** if 0 Critical + 0 High. Otherwise **FIX → RE-AUD
 <summary><strong>Phases in Detail</strong></summary>
 
 ### Phase 0: Prerequisites
-Collect inputs: brandbook URL, target URL, audit scope (full site or specific pages), device targets. Default viewport: 1440×900.
+Collect inputs: design reference (Figma link, PDF path, reference URL, screenshots, or manual specs), target URL, audit scope (full site or specific pages), viewport size. Default: 1440×900.
 
 ### Phase 1: Browser Setup
-Get browser tab via `tabs_context_mcp`, navigate to target URL, set viewport size. Confirm page loads correctly.
+Open browser tabs for target site and design reference (Figma, reference site). For non-browser sources (PDF, screenshots, Notion), use file/API tools directly. Dismiss cookie banners, verify pages load.
 
-### Phase 2: Design Token Extraction
-Open the design system. Extract canonical palette (hex values), typography scale (font-family, sizes, weights, line-heights), spacing system, border-radius values, shadow definitions.
+### Phase 2: Token Extraction (Multi-Source)
+Extract design tokens using the workflow matching your source type (2A–2G). Build a universal token table with typography, color, and component tokens. Minimum 10 entries before proceeding. Note confidence level per source.
 
 ### Phase 3: Site Discovery & Navigation Map
-Discover all pages and interactive states. Build a checklist: main pages, modals, dropdowns, hover states, empty states, error states, loading states.
+Navigate the target site. Build a checklist of all pages and interactive states: modals, dropdowns, tooltips, hover states, expandable sections. Scroll entire page for SPA lazy loading.
 
-### Phase 4: Component Grouping
-Build a registry of shared components (buttons, cards, inputs, headers, footers). Map which components appear on which pages — deviations here multiply.
+### Phase 4: Systematic Measurement
+For each page: measure elements via batch JS (`getComputedStyle()`), compare against token table. For every "not in tokens" finding — cross-verify against the original design source before logging a bug.
 
-### Phase 5: Systematic Audit
-For each page: verify DOM existence of every element before measuring → capture textContent to prove correct element → measure via batch JS snippets → compare against brandbook → log deviations with severity and 3-level navigation path.
+### Phase 5: Verification & Cleanup
+Apply false positive rules (ordered by real-world frequency). Design intent filter: different categories/roles/states = not a bug. Dedup systemic vs page-level. Align severity. Verify Current ≠ Expected for every entry.
 
-### Phase 6: Verification & Cleanup
-Design intent filter: different categories/roles/states with different styles ≠ bug. Cross-page consistency: same component must match across pages. Strict deduplication: systemic bugs absorb page-level duplicates. Severity alignment: same violation class = same severity.
-
-### Phase 6.5: Self-Review (12-Point Quality Gate)
-Audit the audit before delivery. 12 checks including: DOM existence proof (catch hallucinations), context verification (catch same-text-wrong-element), design intent check, navigation reproducibility, duplicate scan, palette cross-reference, and format standardization. In production, catches 10-15% defective entries per session.
-
-### Phase 7: Documentation
-Compile all findings into the chosen format. Attach screenshots. Sort by severity. Present summary with verdict.
+### Phase 6: Report
+Generate XLSX (openpyxl) or Markdown report. Save incrementally after each page. Include summary with category×severity matrix and verdict. Save handoff file when context runs low.
 
 </details>
 
@@ -189,13 +210,19 @@ Compile all findings into the chosen format. Attach screenshots. Sort by severit
 <summary><strong>FAQ</strong></summary>
 
 **Can I use this without a brandbook?**
-No. The brandbook is the source of truth. Without it, there's nothing objective to compare against.
+Yes — v2.1 supports multiple design sources. You can use Figma, a reference site (approved production build), screenshots with annotated specs, or even manual values. A brandbook/PDF is just one of the options.
+
+**What's the best design source?**
+Figma gives the highest confidence — you can click individual elements and read exact values from the properties panel. Reference sites are next best (real CSS). Screenshots and manual specs work but may produce more false positives.
+
+**Can I combine multiple sources?**
+Yes. For example, use Figma for typography tokens and a reference site for component dimensions. The skill tracks confidence per source and flags when sources disagree.
 
 **How long does a full audit take?**
 Depends on site complexity. Plan ~5-10 min per page. A typical 5-page app takes 20-40 minutes including report generation.
 
 **Does it work with dark mode?**
-Yes. Audit each theme separately — switch themes via the app's toggle, then measure. The brandbook should define both light and dark palettes.
+Yes. Audit each theme separately — switch themes via the app's toggle, then measure. The design reference should define both light and dark palettes.
 
 **What browsers does it support?**
 Chrome only — the skill requires the Chrome MCP browser extension.
@@ -207,7 +234,7 @@ Yes. Set the viewport to a mobile size (e.g., 375×812) in your request.
 Per-channel RGB difference of ≤3 is auto-dismissed (e.g., `#8996A3` vs `#8996A4`). Larger deviations are flagged.
 
 **How accurate is the report?**
-v1.3.0 includes an anti-hallucination protocol (DOM existence verification + textContent capture) and a 12-point self-review gate. Phase 6.5 catches the majority of hallucinations, duplicates, and factual errors before delivery. Without these safeguards, expect 10-15% of entries to be duplicates, non-bugs, or misidentified elements.
+v2.1 includes a cross-verification loop (go back to source for every "not in tokens" finding), false positive rules ordered by real-world frequency, and incremental saving to prevent data loss. Source-specific gotchas help avoid common pitfalls per source type.
 
 </details>
 
@@ -219,7 +246,7 @@ v1.3.0 includes an anti-hallucination protocol (DOM existence verification + tex
 |:---|:---|:---|
 | **Purpose** | Verify implementation matches design specs | Catch unintended visual changes after code updates |
 | **How** | Manual CSS inspection via Chrome MCP | Automated Playwright screenshot diffing |
-| **Input** | Design system / brandbook | Baseline screenshots |
+| **Input** | Design reference (Figma, PDF, screenshots, etc.) | Baseline screenshots |
 | **Output** | Structured bug report (Excel/Markdown) | HTML diff report (pass/fail) |
 | **When** | Pre-launch design QA | CI/CD pipeline, PR checks |
 
