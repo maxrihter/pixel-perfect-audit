@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-6B48FF?style=flat-square&logo=anthropic&logoColor=white)](SKILL.md)
-[![Version](https://img.shields.io/badge/version-2.1.0-green.svg?style=flat-square)](SKILL.md)
+[![Version](https://img.shields.io/badge/version-2.2.0-green.svg?style=flat-square)](SKILL.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
 </div>

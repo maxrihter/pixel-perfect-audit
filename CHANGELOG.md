@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.2.0] - 2026-03-10
+
+### Added
+- **Token table persistence** (Phase 2G) — save token table to `audit-tokens.md` immediately after Phase 2G, before Phase 3. Update on every cross-verification discovery
+- **Selector priority list** (Phase 4.1) — ordered hierarchy: `[data-testid]` > semantic > stable class > positional > ❌ hashed. Filter-by-text fallback snippet for when selectors fail
+- **Hover / Focus state measurement** (new Phase 4.3) — `:focus` via `el.focus()` + immediate `getComputedStyle`; `:hover` via `computer(hover)` + single-property JS call in 150ms window
+- **Complete XLSX row population recipe** (Phase 6) — `enumerate(bugs)` loop, `Alignment(wrap_text, vertical='top')`, severity cell fills, `column_dimensions` auto-width with 60px cap, `freeze_panes = 'A2'`
+
+### Changed
+- **Phase numbering** — 4.3 (Cross-Verification Loop) renamed to 4.4; new 4.3 is Hover/Focus measurement
+- **Cross-verification approach** (Phase 4.4) — now batch-first: accumulate all unknowns per page, group by element type, verify in one source pass instead of per-value checks
+- **NEVER rule** updated — references Phase 4.4 instead of 4.3
+
 ## [2.1.0] - 2026-03-09
 
 ### Added

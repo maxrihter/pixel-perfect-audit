@@ -13,11 +13,11 @@ license: MIT
 metadata:
   category: technique
   author: maxrihter
-  version: "2.1.0"
+  version: "2.2.0"
   triggers: pixel-perfect, design audit, UI audit, brandbook compliance, design QA, design check, design implementation, check against design, check against brandbook
 ---
 
-# Pixel-Perfect Design Audit v2.1
+# Pixel-Perfect Design Audit v2.2
 
 Compare live web app against a design reference. Measure every CSS property, cross-verify against design tokens, output structured report.
 
@@ -259,6 +259,9 @@ Before proceeding:
 - [ ] Key component specs (border-radius, padding) documented
 - [ ] Confidence level noted (High/Medium/Low per source)
 
+→ **Save token table to `{project_folder}/audit-tokens.md` immediately** — before starting Phase 3
+→ Update this file whenever Phase 4 discovers new tokens in cross-verification
+
 > **If confidence is Low (screenshots/manual), warn the user:** "Token extraction is approximate. False positive rate may be higher. Consider providing Figma or exact specs for critical values."
 
 ---
@@ -328,6 +331,18 @@ JSON.stringify([
 ])
 ```
 
+**Selector priority (most → least stable):**
+1. `[data-testid="x"]`, `[data-qa="x"]` — survive class refactors
+2. `[role="heading"]`, `[aria-label="x"]`, semantic: `h1 th button nav a`
+3. Stable class: `.btn-primary`, `.card__header`
+4. Positional: `header > nav > li:nth-child(2) > a`
+5. ❌ Hashed: `.sc-abc123`, `.css-1a2b3c` — unstable, avoid
+
+Element not found? Filter by text content:
+```javascript
+[...document.querySelectorAll('td')].find(el => el.textContent.trim() === 'Target Text')
+```
+
 ### 4.2 Specialized Scans
 
 **Small font scan (catch violations across entire page):**
@@ -366,9 +381,37 @@ c ? JSON.stringify({
 }) : JSON.stringify({ error: 'not found' })
 ```
 
-### 4.3 Cross-Verification Loop
+### 4.3 Hover / Focus State Measurement
 
-**For EVERY measured value that doesn't match a known token:**
+**:focus** — fully reliable, state persists while JS runs:
+```javascript
+const el = document.querySelector('SELECTOR');
+el.focus();
+const s = getComputedStyle(el);
+JSON.stringify({ outline: s.outline, outlineColor: rgbToHex(s.outlineColor), borderColor: rgbToHex(s.borderColor) })
+```
+
+**:hover** — timing-sensitive (~150ms window before state drops):
+```
+1. computer(hover, coordinate=[x,y], tabId=TARGET_TAB)
+2. Immediately: javascript_tool → getComputedStyle
+   → Measure ONE property per call (faster = more reliable)
+   → If hover drops: hover again → measure again
+```
+
+---
+
+### 4.4 Cross-Verification Loop
+
+**BATCH approach — don't verify one-by-one:**
+After measuring each page, accumulate ALL unknowns, then verify in one source pass:
+1. Collect unknowns as you measure: `[{element, value, type}, ...]`
+2. Group by element type (all headings → one Figma check, all buttons → one check)
+3. Return to source ONCE → check all grouped types in one pass
+4. Update token table → re-classify the batch
+5. Remaining unknowns = confirmed bugs
+
+**Per-source action:**
 
 | Source type | Cross-verification action |
 |-------------|--------------------------|
@@ -488,8 +531,24 @@ sev_fills = {
                  Font(name='Inter', size=10, color='000000')),
 }
 
-# Add bugs, then create Summary sheet with category×severity matrix
-# Save to project folder, not /tmp
+# Row population
+for row_idx, bug in enumerate(bugs, 2):
+    for col_idx, val in enumerate(bug, 1):
+        c = ws.cell(row=row_idx, column=col_idx, value=val)
+        c.alignment = Alignment(wrap_text=True, vertical='top')
+        if col_idx == 5:  # Severity column (E)
+            fill, font = sev_fills.get(val, (None, None))
+            if fill: c.fill = fill
+            if font: c.font = font
+
+# Auto-width columns + freeze header row
+for col in ws.columns:
+    width = max(len(str(c.value or '')) for c in col)
+    ws.column_dimensions[col[0].column_letter].width = min(width + 4, 60)
+ws.column_dimensions['A'].width = 45  # Page/Section — always wide
+ws.freeze_panes = 'A2'
+
+wb.save(path)  # Save to project folder, not /tmp
 ```
 
 ### Incremental Saving Protocol
@@ -565,6 +624,6 @@ Contents:
 - Never start measuring before token table has 10+ entries
 - Never flag different categories/roles having different styles as "inconsistency"
 - Never create a bug where Current = Expected
-- Never skip the cross-verification loop (Phase 4.3)
+- Never skip the cross-verification loop (Phase 4.4)
 - Never enter credentials on behalf of the user
 - Never treat screenshot-extracted values as exact without user confirmation
